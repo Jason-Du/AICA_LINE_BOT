@@ -15,17 +15,32 @@ parser       = WebhookParser(settings.LINE_CHANNEL_SECRET)
 
 @csrf_exempt
 def callback(request):
-    if request.method == 'POST':
+    var_reply_token_store = 0
+    if request.method == 'GET':
+        print("receive get request")
+        with open('id.txt', 'r') as f:
+            user_id=f.read()
+        f.close()
+        print(user_id)
+        try:
+            line_bot_api.push_message(user_id, TextSendMessage(text='message from Desktop'))
+        except LineBotApiError as e:
+            # error handle
+            raise e
+        return HttpResponse()
+
+    elif request.method == 'POST':
         try:
             signature = request.META['HTTP_X_LINE_SIGNATURE']
-            print(signature)
+            # print(request.META)
+
         except:
             print("NO SIGNATURE")
         body = request.body.decode('utf-8')
-        print(body)
 
         try:
             events = parser.parse(body, signature)  # 傳入的事件
+
         except InvalidSignatureError:
             return HttpResponseForbidden()
         except LineBotApiError:
@@ -37,8 +52,17 @@ def callback(request):
                     event.reply_token,
                     TextSendMessage(text=event.message.text)
                 )
-            print(event.message.text)
-            if (event.message.text=="photo"):
+
+            # [{"message": {"id": "13613467708831", "text": "C", "type": "text"}, "mode": "active",
+            #   "replyToken": "e01380545e5e4c788456b40c6f426bec",
+            #   "source": {"type": "user", "userId": "Ubc735f7239dfd126d8816b39b11dbacb"}, "timestamp": 1614170710771,
+            #   "type": "message"}]
+            if event.message.text=="setreply":
+                var_id = (event.source.user_id)
+                with open('id.txt', 'w') as f:
+                    f.write(str(var_id))
+                    f.close()
+            elif (event.message.text=="photo"):
                 pass
                 data = {
                     "name": "Jason",
@@ -46,8 +70,21 @@ def callback(request):
                 }
                 print(data.keys())
                 # "message from desktop"
-                r = requests.get('https://11238b824f9c.ngrok.io', params=data)
+                r = requests.get('https://aaf0b0213f31.ngrok.io', params=data)
                 r.close()
+            elif (event.message.text == "hi"):
+                pass
+                data = {
+                    "name": "Jason",
+                    "photo": "OFF"
+                }
+                # print(data.keys())
+                # "message from desktop"
+                r = requests.get('https://aaf0b0213f31.ngrok.io/hi', params=data)
+                r.close()
+            else:
+                pass
+
 
 
                 # try:
@@ -66,6 +103,8 @@ def callback(request):
                 #     print('Exception!!')
                 #     raise
                 #
+
         return HttpResponse()
     else:
+        print("ERROR")
         return HttpResponseBadRequest()
